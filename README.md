@@ -4,6 +4,7 @@
 [![Flask](https://img.shields.io/badge/Flask-3.0.2-green.svg)](https://flask.palletsprojects.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Twitter API](https://img.shields.io/badge/Twitter%20API-v2-1DA1F2.svg)](https://developer.twitter.com/)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/BillioncodesInc/GeoTrendViz)
 
 GeoTrendViz is a powerful, real-time Twitter trends visualization tool that transforms location-based trending topics into beautiful, interactive word clouds. Discover what's happening around the world with just a click.
 
@@ -125,8 +126,13 @@ python app.py
 GeoTrendViz/
 ├── app.py              # Main Flask application
 ├── requirements.txt    # Python dependencies
-├── .env.example       # Environment variables template
+├── render.yaml        # Render deployment config
+├── Procfile           # Heroku deployment config
+├── runtime.txt        # Python version
+├── env.example        # Environment variables template
 ├── README.md          # Project documentation
+├── DEPLOYMENT.md      # Deployment guide
+├── LICENSE            # MIT license
 ├── static/
 │   ├── styles.css     # Application styles
 │   └── script.js      # Frontend JavaScript
@@ -157,53 +163,17 @@ Default limits:
 
 ## 🚀 Deployment
 
-### Deploying to Vercel
+### One-Click Deploy to Render
 
-1. **Install Vercel CLI**
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/BillioncodesInc/GeoTrendViz)
 
-```bash
-npm i -g vercel
-```
+### Manual Deployment
 
-2. **Create `vercel.json`**
+See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions for:
 
-```json
-{
-  "builds": [
-    {
-      "src": "app.py",
-      "use": "@vercel/python"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "app.py"
-    }
-  ]
-}
-```
-
-3. **Deploy**
-
-```bash
-vercel
-```
-
-### Deploying to Heroku
-
-1. **Create `Procfile`**
-
-```
-web: gunicorn app:app
-```
-
-2. **Deploy**
-
-```bash
-heroku create your-app-name
-git push heroku main
-```
+- Render (Recommended)
+- Heroku
+- Railway
 
 ## 🤝 Contributing
 
