@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoTrendViz - Twitter Trends Visualization</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-content">
+            <div class="nav-left">
+                <h1 class="nav-title">GeoTrendViz</h1>
+                <div class="nav-links">
+                    <a href="/" class="nav-link active"><i class="fas fa-home"></i> Home</a>
+                    <a href="#" class="nav-link" id="aboutLink"><i class="fas fa-info-circle"></i> About</a>
+                </div>
+            </div>
+            <div class="nav-right">
+                <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">
+                        <i class="fas {% if category == 'error' %}fa-exclamation-circle{% else %}fa-check-circle{% endif %}"></i>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" class="form-container" id="trendForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-row">
+                <div class="tooltip">
+                    <input type="text" 
+                           name="location" 
+                           placeholder="Enter location (e.g., New York, Tokyo)" 
+                           value="{{ request.form.get('location', '') }}"
+                           maxlength="100"
+                           required
+                           aria-label="Location input">
+                    <span class="tooltip-text">Enter a city, country, or region to see trending topics</span>
+                </div>
+                <select name="language" aria-label="Select language">
+                    {% for code, name in languages.items() %}
+                        <option value="{{ code }}" {% if code == selected_lang %}selected{% endif %}>{{ name }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" id="submitBtn">
+                    <i class="fas fa-search"></i> Search Trends
+                    <div class="button-loader"></div>
+                </button>
+            </div>
+            <div class="error-message" id="locationError"></div>
+        </form>
+
+        {% if error %}
+            <div class="flash-message error">
+                <i class="fas fa-exclamation-circle"></i>
+                {{ error }}
+            </div>
+        {% endif %}
+
+        {% if display_name %}
+            <div class="trends-header">
+                <h2 class="trends-title">Trending Topics in {{ display_name }}</h2>
+                <div class="trends-actions">
+                    <button class="action-button" id="downloadBtn" title="Download as SVG">
+                        <i class="fas fa-download"></i>
+                    </button>
+                    <button class="action-button" id="shareBtn" title="Share">
+                        <i class="fas fa-share-alt"></i>
+                    </button>
+                    <button class="action-button" id="copyLinkBtn" title="Copy Link">
+                        <i class="fas fa-link"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="wordcloud-container" class="wordcloud-container">
+                <div class="loading-overlay">
+                    <div class="loading-spinner"></div>
+                </div>
+            </div>
+            <script>
+                window.words_data = {{ words_data | tojson | safe }};
+            </script>
+        {% endif %}
+    </div>
+
+    <div class="popup-overlay"></div>
+    <div id="popup" class="popup">
+        <div class="popup-header">
+            <h3 id="popup-title"></h3>
+            <button class="close-button" onclick="hidePopup()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="popup-content">
+            <ul id="popup-list"></ul>
+        </div>
+    </div>
+
+    <div id="aboutModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>About GeoTrendViz</h2>
+                <button class="close-button" onclick="hideModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>GeoTrendViz is a powerful tool for visualizing Twitter trends by location. Explore trending topics, analyze tweet volumes, and discover what's happening around the world.</p>
+                <h3>Features:</h3>
+                <ul>
+                    <li>Location-based trend visualization</li>
+                    <li>Multi-language support</li>
+                    <li>Interactive word cloud</li>
+                    <li>Real-time tweet data</li>
+                    <li>Dark/Light mode</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-cloud@1.2.5/build/d3.layout.cloud.min.js"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html> 
