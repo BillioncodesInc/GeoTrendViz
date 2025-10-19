@@ -5,7 +5,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 from datetime import datetime
 from functools import wraps
-from flask import Flask, render_template, request, jsonify, session, flash
+from flask import Flask, render_template, request, jsonify, session, flash, redirect, url_for
 from flask_wtf.csrf import CSRFProtect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -41,21 +41,84 @@ limiter = Limiter(
     default_limits=["200 per day", "50 per hour"]
 )
 
-# Twitter API credentials
+# Twitter API credentials - check session first, then environment variables
+def get_twitter_credentials():
+    """Get Twitter credentials from session or environment variables."""
+    return {
+        'api_key': session.get('TWITTER_API_KEY') or os.getenv('TWITTER_API_KEY'),
+        'api_secret': session.get('TWITTER_API_SECRET') or os.getenv('TWITTER_API_SECRET'),
+        'access_token': session.get('TWITTER_ACCESS_TOKEN') or os.getenv('TWITTER_ACCESS_TOKEN'),
+        'access_token_secret': session.get('TWITTER_ACCESS_TOKEN_SECRET') or os.getenv('TWITTER_ACCESS_TOKEN_SECRET'),
+        'bearer_token': session.get('TWITTER_BEARER_TOKEN') or os.getenv('TWITTER_BEARER_TOKEN')
+    }
+
 TWITTER_API_KEY = os.getenv('TWITTER_API_KEY')
 TWITTER_API_SECRET = os.getenv('TWITTER_API_SECRET')
 TWITTER_ACCESS_TOKEN = os.getenv('TWITTER_ACCESS_TOKEN')
 TWITTER_ACCESS_TOKEN_SECRET = os.getenv('TWITTER_ACCESS_TOKEN_SECRET')
 TWITTER_BEARER_TOKEN = os.getenv('TWITTER_BEARER_TOKEN')
 
-# Initialize Twitter API client (v2 only)
-client = tweepy.Client(
-    bearer_token=TWITTER_BEARER_TOKEN,
-    consumer_key=TWITTER_API_KEY,
-    consumer_secret=TWITTER_API_SECRET,
-    access_token=TWITTER_ACCESS_TOKEN,
-    access_token_secret=TWITTER_ACCESS_TOKEN_SECRET
-)
+# Validate Twitter credentials
+def validate_twitter_credentials(creds=None):
+    """Check if Twitter API credentials are configured."""
+    if creds is None:
+        creds = get_twitter_credentials()
+    
+    missing = []
+    if not creds.get('api_key'):
+        missing.append('TWITTER_API_KEY')
+    if not creds.get('api_secret'):
+        missing.append('TWITTER_API_SECRET')
+    if not creds.get('access_token'):
+        missing.append('TWITTER_ACCESS_TOKEN')
+    if not creds.get('access_token_secret'):
+        missing.append('TWITTER_ACCESS_TOKEN_SECRET')
+    if not creds.get('bearer_token'):
+        missing.append('TWITTER_BEARER_TOKEN')
+    
+    if missing:
+        if creds == get_twitter_credentials():
+            logger.warning(f"Missing Twitter API credentials: {', '.join(missing)}")
+            logger.warning("Application will start but Twitter API features will not work.")
+        return False
+    return True
+
+# Check credentials
+TWITTER_CREDENTIALS_VALID = validate_twitter_credentials()
+
+# Initialize Twitter API client (v2 only) if credentials are available
+def get_twitter_client():
+    """Get or create Twitter API client with current credentials."""
+    creds = get_twitter_credentials()
+    if not validate_twitter_credentials(creds):
+        return None
+    
+    try:
+        return tweepy.Client(
+            bearer_token=creds['bearer_token'],
+            consumer_key=creds['api_key'],
+            consumer_secret=creds['api_secret'],
+            access_token=creds['access_token'],
+            access_token_secret=creds['access_token_secret']
+        )
+    except Exception as e:
+        logger.error(f"Failed to initialize Twitter API client: {e}")
+        return None
+
+client = None
+if TWITTER_CREDENTIALS_VALID:
+    try:
+        client = tweepy.Client(
+            bearer_token=TWITTER_BEARER_TOKEN,
+            consumer_key=TWITTER_API_KEY,
+            consumer_secret=TWITTER_API_SECRET,
+            access_token=TWITTER_ACCESS_TOKEN,
+            access_token_secret=TWITTER_ACCESS_TOKEN_SECRET
+        )
+        logger.info("Twitter API client initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize Twitter API client: {e}")
+        TWITTER_CREDENTIALS_VALID = False
 
 # Supported languages with their codes and names
 SUPPORTED_LANGUAGES = {
@@ -97,11 +160,16 @@ def validate_location(location):
 @handle_api_error
 def fetch_top_trends_by_location(location, lang='en'):
     """Fetch top trends for a given location using v2 API."""
+    twitter_client = get_twitter_client()
+    if twitter_client is None:
+        logger.error("Twitter API credentials not configured")
+        raise Exception("Twitter API is not configured. Please configure it in the settings page.")
+    
     logger.info(f"Fetching trends for location: {location}, language: {lang}")
     try:
         # Search for recent tweets mentioning the location
         query = f"{location} -is:retweet lang:{lang}"
-        tweets = client.search_recent_tweets(
+        tweets = twitter_client.search_recent_tweets(
             query=query,
             max_results=100,
             tweet_fields=['created_at', 'text', 'public_metrics']
@@ -132,9 +200,14 @@ def fetch_top_trends_by_location(location, lang='en'):
 @handle_api_error
 def fetch_top_5_recent_tweets(query, lang='en'):
     """Fetch top 5 recent tweets for a given query using v2 API."""
+    twitter_client = get_twitter_client()
+    if twitter_client is None:
+        logger.error("Twitter API credentials not configured")
+        raise Exception("Twitter API is not configured. Please configure it in the settings page.")
+    
     logger.info(f"Fetching tweets for query: {query}, language: {lang}")
     try:
-        tweets = client.search_recent_tweets(
+        tweets = twitter_client.search_recent_tweets(
             query=f"{query} -is:retweet lang:{lang}",
             max_results=10,
             tweet_fields=['created_at', 'text', 'public_metrics']
@@ -179,6 +252,10 @@ def generate_wordcloud_layout(frequencies, width=800, height=600):
 @limiter.limit("30 per minute")
 @handle_api_error
 def fetch_tweets():
+    twitter_client = get_twitter_client()
+    if twitter_client is None:
+        return jsonify({'error': 'Twitter API is not configured. Please configure it in the settings page.'}), 503
+    
     try:
         data = request.get_json()
         if not data:
@@ -193,7 +270,7 @@ def fetch_tweets():
         logger.info(f"Fetching tweets for word: {word}, language: {lang}")
         
         # Fetch tweets using the v2 API
-        tweets = client.search_recent_tweets(
+        tweets = twitter_client.search_recent_tweets(
             query=f"{word} -is:retweet lang:{lang}",
             max_results=10,
             tweet_fields=['created_at', 'text', 'public_metrics']
@@ -229,26 +306,40 @@ def fetch_tweets():
 
 @app.route('/', methods=['GET', 'POST'])
 @limiter.limit("60 per minute")
-@handle_api_error
 def index():
-    if request.method == 'GET':
-        # Fetch default US trends
-        trends = fetch_top_trends_by_location('USA', 'en')
-        if trends:
-            frequencies = {t['name']: t['tweet_volume'] for t in trends}
-            words_data, canvas_width, canvas_height = generate_wordcloud_layout(frequencies)
-            return render_template('wordcloud.html',
-                                 display_name='USA',
-                                 words_data=words_data,
-                                 tweets_lookup=json.dumps({}),
-                                 canvas_width=canvas_width,
-                                 canvas_height=canvas_height,
-                                 languages=SUPPORTED_LANGUAGES,
-                                 selected_lang='en')
+    # Check if Twitter API is configured
+    twitter_client = get_twitter_client()
+    if twitter_client is None:
+        error_msg = "Twitter API is not configured. Please configure it in the settings page."
+        logger.error(error_msg)
         return render_template('wordcloud.html', 
                              languages=SUPPORTED_LANGUAGES, 
                              selected_lang='en',
-                             error="Could not fetch default trends")
+                             error=error_msg,
+                             show_config_link=True)
+    
+    if request.method == 'GET':
+        # Fetch default US trends
+        try:
+            trends = fetch_top_trends_by_location('USA', 'en')
+            if trends:
+                frequencies = {t['name']: t['tweet_volume'] for t in trends}
+                words_data, canvas_width, canvas_height = generate_wordcloud_layout(frequencies)
+                return render_template('wordcloud.html',
+                                     display_name='USA',
+                                     words_data=words_data,
+                                     tweets_lookup=json.dumps({}),
+                                     canvas_width=canvas_width,
+                                     canvas_height=canvas_height,
+                                     languages=SUPPORTED_LANGUAGES,
+                                     selected_lang='en')
+        except Exception as e:
+            logger.error(f"Error fetching default trends: {e}")
+        
+        return render_template('wordcloud.html', 
+                             languages=SUPPORTED_LANGUAGES, 
+                             selected_lang='en',
+                             error="Could not fetch default trends. Please try searching for a specific location.")
     
     location = request.form.get('location', '').strip()
     lang = request.form.get('language', 'en')
@@ -289,5 +380,56 @@ def index():
                              languages=SUPPORTED_LANGUAGES,
                              selected_lang=lang)
 
+@app.route('/config', methods=['GET', 'POST'])
+def config():
+    """Configuration page for Twitter API credentials."""
+    if request.method == 'POST':
+        # Save credentials to session
+        session['TWITTER_API_KEY'] = request.form.get('api_key', '').strip()
+        session['TWITTER_API_SECRET'] = request.form.get('api_secret', '').strip()
+        session['TWITTER_ACCESS_TOKEN'] = request.form.get('access_token', '').strip()
+        session['TWITTER_ACCESS_TOKEN_SECRET'] = request.form.get('access_token_secret', '').strip()
+        session['TWITTER_BEARER_TOKEN'] = request.form.get('bearer_token', '').strip()
+        
+        # Validate credentials
+        creds = get_twitter_credentials()
+        if validate_twitter_credentials(creds):
+            # Test the credentials
+            try:
+                test_client = get_twitter_client()
+                if test_client:
+                    flash('Twitter API credentials saved and validated successfully!', 'success')
+                    logger.info('Twitter API credentials configured via web interface')
+                    return redirect(url_for('index'))
+                else:
+                    flash('Failed to initialize Twitter client. Please check your credentials.', 'error')
+            except Exception as e:
+                flash(f'Error validating credentials: {str(e)}', 'error')
+                logger.error(f'Error validating credentials: {e}')
+        else:
+            flash('Please fill in all required fields.', 'error')
+    
+    # Get current configuration status
+    creds = get_twitter_credentials()
+    config_status = 'configured' if validate_twitter_credentials(creds) else 'not_configured'
+    
+    # Mask credentials for display (show only first/last few characters)
+    current_config = {}
+    if creds.get('api_key'):
+        current_config['api_key'] = creds['api_key'][:8] + '...' if len(creds['api_key']) > 8 else ''
+    if creds.get('api_secret'):
+        current_config['api_secret'] = '***'
+    if creds.get('access_token'):
+        current_config['access_token'] = creds['access_token'][:8] + '...' if len(creds['access_token']) > 8 else ''
+    if creds.get('access_token_secret'):
+        current_config['access_token_secret'] = '***'
+    if creds.get('bearer_token'):
+        current_config['bearer_token'] = '***'
+    
+    return render_template('config.html',
+                         config_status=config_status,
+                         current_config=current_config)
+
 if __name__ == '__main__':
-    app.run(debug=os.getenv('FLASK_DEBUG', 'False').lower() == 'true') 
+    app.run(debug=os.getenv('FLASK_DEBUG', 'False').lower() == 'true')
+

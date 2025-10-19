@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuration - GeoTrendViz</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        .config-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+        
+        .config-card {
+            background: var(--card-bg, #ffffff);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .config-header {
+            margin-bottom: 2rem;
+        }
+        
+        .config-header h2 {
+            margin: 0 0 0.5rem 0;
+            color: var(--text-primary, #1a1a1a);
+        }
+        
+        .config-header p {
+            margin: 0;
+            color: var(--text-secondary, #666);
+            font-size: 0.95rem;
+        }
+        
+        .config-form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .config-form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-primary, #1a1a1a);
+        }
+        
+        .config-form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid var(--border-color, #e0e0e0);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-family: 'Inter', sans-serif;
+            transition: border-color 0.3s;
+        }
+        
+        .config-form-group input:focus {
+            outline: none;
+            border-color: var(--primary-color, #1DA1F2);
+        }
+        
+        .config-form-group small {
+            display: block;
+            margin-top: 0.25rem;
+            color: var(--text-secondary, #666);
+            font-size: 0.85rem;
+        }
+        
+        .config-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        
+        .config-btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .config-btn-primary {
+            background: linear-gradient(135deg, #1DA1F2 0%, #0d8bd9 100%);
+            color: white;
+        }
+        
+        .config-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(29, 161, 242, 0.3);
+        }
+        
+        .config-btn-secondary {
+            background: var(--secondary-bg, #f5f5f5);
+            color: var(--text-primary, #1a1a1a);
+        }
+        
+        .config-btn-secondary:hover {
+            background: var(--secondary-bg-hover, #e0e0e0);
+        }
+        
+        .config-status {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .config-status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .config-status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .config-status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .config-help {
+            background: var(--info-bg, #e7f3ff);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1.5rem;
+            border-left: 4px solid var(--primary-color, #1DA1F2);
+        }
+        
+        .config-help h4 {
+            margin: 0 0 0.5rem 0;
+            color: var(--text-primary, #1a1a1a);
+        }
+        
+        .config-help p {
+            margin: 0.5rem 0;
+            color: var(--text-secondary, #666);
+            font-size: 0.9rem;
+        }
+        
+        .config-help a {
+            color: var(--primary-color, #1DA1F2);
+            text-decoration: none;
+        }
+        
+        .config-help a:hover {
+            text-decoration: underline;
+        }
+        
+        [data-theme="dark"] {
+            --card-bg: #1e1e1e;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+            --border-color: #3a3a3a;
+            --secondary-bg: #2a2a2a;
+            --secondary-bg-hover: #3a3a3a;
+            --info-bg: #1a2332;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-content">
+            <div class="nav-left">
+                <h1 class="nav-title">GeoTrendViz</h1>
+                <div class="nav-links">
+                    <a href="/" class="nav-link"><i class="fas fa-home"></i> Home</a>
+                    <a href="/config" class="nav-link active"><i class="fas fa-cog"></i> Configuration</a>
+                </div>
+            </div>
+            <div class="nav-right">
+                <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="config-container">
+        {% if config_status == 'configured' %}
+        <div class="config-status success">
+            <i class="fas fa-check-circle"></i>
+            <span>Twitter API is configured and ready to use!</span>
+        </div>
+        {% elif config_status == 'not_configured' %}
+        <div class="config-status warning">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>Twitter API credentials are not configured. Please set them below or in environment variables.</span>
+        </div>
+        {% endif %}
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="config-status {{ category }}">
+                        <i class="fas {% if category == 'error' %}fa-exclamation-circle{% elif category == 'success' %}fa-check-circle{% else %}fa-info-circle{% endif %}"></i>
+                        <span>{{ message }}</span>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="config-card">
+            <div class="config-header">
+                <h2><i class="fas fa-key"></i> Twitter API Configuration</h2>
+                <p>Configure your Twitter API credentials to enable trend visualization features.</p>
+            </div>
+
+            <form method="POST" action="/config">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                
+                <div class="config-form-group">
+                    <label for="api_key">
+                        <i class="fas fa-code"></i> API Key (Consumer Key)
+                    </label>
+                    <input type="text" 
+                           id="api_key" 
+                           name="api_key" 
+                           placeholder="Enter your Twitter API Key"
+                           value="{{ current_config.get('api_key', '') }}"
+                           required>
+                    <small>Your Twitter API consumer key</small>
+                </div>
+
+                <div class="config-form-group">
+                    <label for="api_secret">
+                        <i class="fas fa-lock"></i> API Secret (Consumer Secret)
+                    </label>
+                    <input type="password" 
+                           id="api_secret" 
+                           name="api_secret" 
+                           placeholder="Enter your Twitter API Secret"
+                           value="{{ current_config.get('api_secret', '') }}"
+                           required>
+                    <small>Your Twitter API consumer secret</small>
+                </div>
+
+                <div class="config-form-group">
+                    <label for="access_token">
+                        <i class="fas fa-ticket-alt"></i> Access Token
+                    </label>
+                    <input type="text" 
+                           id="access_token" 
+                           name="access_token" 
+                           placeholder="Enter your Access Token"
+                           value="{{ current_config.get('access_token', '') }}"
+                           required>
+                    <small>Your Twitter access token</small>
+                </div>
+
+                <div class="config-form-group">
+                    <label for="access_token_secret">
+                        <i class="fas fa-shield-alt"></i> Access Token Secret
+                    </label>
+                    <input type="password" 
+                           id="access_token_secret" 
+                           name="access_token_secret" 
+                           placeholder="Enter your Access Token Secret"
+                           value="{{ current_config.get('access_token_secret', '') }}"
+                           required>
+                    <small>Your Twitter access token secret</small>
+                </div>
+
+                <div class="config-form-group">
+                    <label for="bearer_token">
+                        <i class="fas fa-certificate"></i> Bearer Token
+                    </label>
+                    <input type="password" 
+                           id="bearer_token" 
+                           name="bearer_token" 
+                           placeholder="Enter your Bearer Token"
+                           value="{{ current_config.get('bearer_token', '') }}"
+                           required>
+                    <small>Your Twitter Bearer token for API v2</small>
+                </div>
+
+                <div class="config-actions">
+                    <button type="submit" class="config-btn config-btn-primary">
+                        <i class="fas fa-save"></i> Save Configuration
+                    </button>
+                    <a href="/" class="config-btn config-btn-secondary">
+                        <i class="fas fa-times"></i> Cancel
+                    </a>
+                </div>
+            </form>
+
+            <div class="config-help">
+                <h4><i class="fas fa-question-circle"></i> How to get Twitter API credentials?</h4>
+                <p>1. Visit <a href="https://developer.twitter.com/en/portal/dashboard" target="_blank">Twitter Developer Portal</a></p>
+                <p>2. Create a new app or select an existing one</p>
+                <p>3. Navigate to "Keys and tokens" section</p>
+                <p>4. Generate and copy all required credentials</p>
+                <p>5. Paste them in the form above and save</p>
+                <p><strong>Note:</strong> For production deployments, it's recommended to set these as environment variables instead.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleTheme() {
+            const body = document.body;
+            const currentTheme = body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            
+            const themeIcon = document.querySelector('.theme-toggle i');
+            themeIcon.className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+        }
+
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            document.body.setAttribute('data-theme', savedTheme);
+            const themeIcon = document.querySelector('.theme-toggle i');
+            if (themeIcon) {
+                themeIcon.className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            }
+        }
+    </script>
+</body>
+</html>
+
