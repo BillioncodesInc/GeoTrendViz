@@ -2,6 +2,7 @@ import os
 import json
 import random
 import logging
+from logging.handlers import RotatingFileHandler
 from datetime import datetime
 from functools import wraps
 from flask import Flask, render_template, request, jsonify, session, flash
@@ -11,24 +12,26 @@ from flask_limiter.util import get_remote_address
 import tweepy
 from wordcloud import WordCloud
 from dotenv import load_dotenv
-import time
 
 # Load environment variables
 load_dotenv()
 
 # Configure logging
+log_handler = RotatingFileHandler('app.log', maxBytes=10485760, backupCount=5)  # 10MB per file, keep 5 backups
+log_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('app.log'),
+        log_handler,
         logging.StreamHandler()
     ]
 )
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', os.urandom(24))
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', os.urandom(24).hex())
 csrf = CSRFProtect(app)
 
 # Rate limiting
@@ -287,4 +290,4 @@ def index():
                              selected_lang=lang)
 
 if __name__ == '__main__':
-    app.run(debug=True) 
+    app.run(debug=os.getenv('FLASK_DEBUG', 'False').lower() == 'true') 

@@ -111,28 +111,47 @@ function displayTweets(tweets) {
         const li = document.createElement('li');
         li.className = 'tweet-item';
         
+        // Create tweet content div
+        const tweetContent = document.createElement('div');
+        tweetContent.className = 'tweet-content';
+        
+        // Safely add tweet text
+        const tweetText = document.createElement('p');
+        tweetText.textContent = tweet.text; // Use textContent to prevent XSS
+        tweetContent.appendChild(tweetText);
+        
+        // Add metrics with null safety
+        const metrics = tweet.metrics || {};
+        const metricsDiv = document.createElement('div');
+        metricsDiv.className = 'tweet-metrics';
+        metricsDiv.innerHTML = `
+            <span><i class="fas fa-retweet"></i> ${metrics.retweet_count || 0}</span>
+            <span><i class="fas fa-heart"></i> ${metrics.like_count || 0}</span>
+            <span><i class="fas fa-reply"></i> ${metrics.reply_count || 0}</span>
+        `;
+        tweetContent.appendChild(metricsDiv);
+        
         // Format the date if available
-        let dateHtml = '';
         if (tweet.created_at) {
             const tweetDate = new Date(tweet.created_at);
             const formattedDate = tweetDate.toLocaleString();
-            dateHtml = `<div class="tweet-date">${formattedDate}</div>`;
+            const dateDiv = document.createElement('div');
+            dateDiv.className = 'tweet-date';
+            dateDiv.textContent = formattedDate;
+            tweetContent.appendChild(dateDiv);
         }
         
-        li.innerHTML = `
-            <div class="tweet-content">
-                <p>${tweet.text}</p>
-                <div class="tweet-metrics">
-                    <span><i class="fas fa-retweet"></i> ${tweet.metrics.retweet_count || 0}</span>
-                    <span><i class="fas fa-heart"></i> ${tweet.metrics.like_count || 0}</span>
-                    <span><i class="fas fa-reply"></i> ${tweet.metrics.reply_count || 0}</span>
-                </div>
-                ${dateHtml}
-            </div>
-            <a href="${tweet.url}" target="_blank" rel="noopener noreferrer" class="tweet-link">
-                <i class="fas fa-external-link-alt"></i> View on Twitter
-            </a>
-        `;
+        li.appendChild(tweetContent);
+        
+        // Add link
+        const link = document.createElement('a');
+        link.href = tweet.url;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.className = 'tweet-link';
+        link.innerHTML = '<i class="fas fa-external-link-alt"></i> View on Twitter';
+        li.appendChild(link);
+        
         list.appendChild(li);
     });
 }
@@ -328,19 +347,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 }).catch(console.error);
             } else {
                 // Fallback for browsers that don't support Web Share API
-                const tempInput = document.createElement('input');
-                tempInput.value = window.location.href;
-                document.body.appendChild(tempInput);
-                tempInput.select();
-                document.execCommand('copy');
-                document.body.removeChild(tempInput);
-                
-                // Show feedback
-                const originalText = shareBtn.innerHTML;
-                shareBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-                setTimeout(() => {
-                    shareBtn.innerHTML = originalText;
-                }, 2000);
+                navigator.clipboard.writeText(window.location.href)
+                    .then(() => {
+                        // Show feedback
+                        const originalText = shareBtn.innerHTML;
+                        shareBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                        setTimeout(() => {
+                            shareBtn.innerHTML = originalText;
+                        }, 2000);
+                    })
+                    .catch(err => {
+                        console.error('Failed to copy:', err);
+                        // Fallback to old method if Clipboard API fails
+                        const tempInput = document.createElement('input');
+                        tempInput.value = window.location.href;
+                        document.body.appendChild(tempInput);
+                        tempInput.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(tempInput);
+                        const originalText = shareBtn.innerHTML;
+                        shareBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                        setTimeout(() => {
+                            shareBtn.innerHTML = originalText;
+                        }, 2000);
+                    });
             }
         });
     }
@@ -349,19 +379,30 @@ document.addEventListener('DOMContentLoaded', function() {
     const copyLinkBtn = document.getElementById('copyLinkBtn');
     if (copyLinkBtn) {
         copyLinkBtn.addEventListener('click', function() {
-            const tempInput = document.createElement('input');
-            tempInput.value = window.location.href;
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            document.execCommand('copy');
-            document.body.removeChild(tempInput);
-            
-            // Show feedback
-            const originalText = copyLinkBtn.innerHTML;
-            copyLinkBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-            setTimeout(() => {
-                copyLinkBtn.innerHTML = originalText;
-            }, 2000);
+            navigator.clipboard.writeText(window.location.href)
+                .then(() => {
+                    // Show feedback
+                    const originalText = copyLinkBtn.innerHTML;
+                    copyLinkBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                    setTimeout(() => {
+                        copyLinkBtn.innerHTML = originalText;
+                    }, 2000);
+                })
+                .catch(err => {
+                    console.error('Failed to copy:', err);
+                    // Fallback to old method if Clipboard API fails
+                    const tempInput = document.createElement('input');
+                    tempInput.value = window.location.href;
+                    document.body.appendChild(tempInput);
+                    tempInput.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(tempInput);
+                    const originalText = copyLinkBtn.innerHTML;
+                    copyLinkBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                    setTimeout(() => {
+                        copyLinkBtn.innerHTML = originalText;
+                    }, 2000);
+                });
         });
     }
 
