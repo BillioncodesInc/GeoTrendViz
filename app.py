@@ -5,7 +5,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 from datetime import datetime
 from functools import wraps
-from flask import Flask, render_template, request, jsonify, session, flash, redirect, url_for
+from flask import Flask, render_template, request, jsonify, session, flash, redirect, url_for, has_request_context
 from flask_wtf.csrf import CSRFProtect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -44,13 +44,24 @@ limiter = Limiter(
 # Twitter API credentials - check session first, then environment variables
 def get_twitter_credentials():
     """Get Twitter credentials from session or environment variables."""
-    return {
-        'api_key': session.get('TWITTER_API_KEY') or os.getenv('TWITTER_API_KEY'),
-        'api_secret': session.get('TWITTER_API_SECRET') or os.getenv('TWITTER_API_SECRET'),
-        'access_token': session.get('TWITTER_ACCESS_TOKEN') or os.getenv('TWITTER_ACCESS_TOKEN'),
-        'access_token_secret': session.get('TWITTER_ACCESS_TOKEN_SECRET') or os.getenv('TWITTER_ACCESS_TOKEN_SECRET'),
-        'bearer_token': session.get('TWITTER_BEARER_TOKEN') or os.getenv('TWITTER_BEARER_TOKEN')
-    }
+    # Only access session if we're in a request context
+    if has_request_context():
+        return {
+            'api_key': session.get('TWITTER_API_KEY') or os.getenv('TWITTER_API_KEY'),
+            'api_secret': session.get('TWITTER_API_SECRET') or os.getenv('TWITTER_API_SECRET'),
+            'access_token': session.get('TWITTER_ACCESS_TOKEN') or os.getenv('TWITTER_ACCESS_TOKEN'),
+            'access_token_secret': session.get('TWITTER_ACCESS_TOKEN_SECRET') or os.getenv('TWITTER_ACCESS_TOKEN_SECRET'),
+            'bearer_token': session.get('TWITTER_BEARER_TOKEN') or os.getenv('TWITTER_BEARER_TOKEN')
+        }
+    else:
+        # During app initialization, only use environment variables
+        return {
+            'api_key': os.getenv('TWITTER_API_KEY'),
+            'api_secret': os.getenv('TWITTER_API_SECRET'),
+            'access_token': os.getenv('TWITTER_ACCESS_TOKEN'),
+            'access_token_secret': os.getenv('TWITTER_ACCESS_TOKEN_SECRET'),
+            'bearer_token': os.getenv('TWITTER_BEARER_TOKEN')
+        }
 
 TWITTER_API_KEY = os.getenv('TWITTER_API_KEY')
 TWITTER_API_SECRET = os.getenv('TWITTER_API_SECRET')
