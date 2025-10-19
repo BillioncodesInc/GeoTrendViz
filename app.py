@@ -374,10 +374,39 @@ def index():
         except Exception as e:
             logger.error(f"Error fetching default trends: {e}")
         
-        return render_template('wordcloud.html', 
-                             languages=SUPPORTED_LANGUAGES, 
+        # Show demo mode if API call fails
+        demo_words = {
+            '#Technology': 1200,
+            '#AI': 1000,
+            '#Innovation': 900,
+            '#DataScience': 850,
+            '#MachineLearning': 800,
+            '#Cloud': 750,
+            '#Cybersecurity': 700,
+            '#IoT': 650,
+            '#Blockchain': 600,
+            '#5G': 550,
+            'trending': 500,
+            'viral': 480,
+            'breaking': 460,
+            'news': 440,
+            'update': 420,
+            'latest': 400,
+            'popular': 380,
+            'hot': 360,
+            'buzz': 340,
+            'topic': 320
+        }
+        words_data, canvas_width, canvas_height = generate_wordcloud_layout(demo_words)
+        return render_template('wordcloud.html',
+                             display_name='Demo Trends',
+                             words_data=words_data,
+                             tweets_lookup=json.dumps({}),
+                             canvas_width=canvas_width,
+                             canvas_height=canvas_height,
+                             languages=SUPPORTED_LANGUAGES,
                              selected_lang='en',
-                             error="Could not fetch default trends. Please try searching for a specific location.")
+                             is_demo=True)
     
     location = request.form.get('location', '').strip()
     lang = request.form.get('language', 'en')
@@ -393,11 +422,39 @@ def index():
     try:
         trends = fetch_top_trends_by_location(location, lang)
         if not trends:
-            flash("Could not fetch trends for that location", 'error')
-            return render_template('wordcloud.html', 
-                                 error="Could not fetch trends for that location",
+            # Show demo mode instead of error
+            demo_words = {
+                '#Technology': 1200,
+                '#AI': 1000,
+                '#Innovation': 900,
+                '#DataScience': 850,
+                '#MachineLearning': 800,
+                '#Cloud': 750,
+                '#Cybersecurity': 700,
+                '#IoT': 650,
+                '#Blockchain': 600,
+                '#5G': 550,
+                'trending': 500,
+                'viral': 480,
+                'breaking': 460,
+                'news': 440,
+                'update': 420,
+                'latest': 400,
+                'popular': 380,
+                'hot': 360,
+                'buzz': 340,
+                'topic': 320
+            }
+            words_data, canvas_width, canvas_height = generate_wordcloud_layout(demo_words)
+            return render_template('wordcloud.html',
+                                 display_name='Demo Trends',
+                                 words_data=words_data,
+                                 tweets_lookup=json.dumps({}),
+                                 canvas_width=canvas_width,
+                                 canvas_height=canvas_height,
                                  languages=SUPPORTED_LANGUAGES,
-                                 selected_lang=lang)
+                                 selected_lang=lang,
+                                 is_demo=True)
         
         frequencies = {t['name']: t['tweet_volume'] for t in trends}
         words_data, canvas_width, canvas_height = generate_wordcloud_layout(frequencies)
@@ -412,11 +469,39 @@ def index():
     
     except Exception as e:
         logger.error(f"Error in index route: {e}")
-        flash("An error occurred while processing your request", 'error')
-        return render_template('wordcloud.html', 
-                             error="An error occurred while processing your request",
+        # Show demo mode instead of error
+        demo_words = {
+            '#Technology': 1200,
+            '#AI': 1000,
+            '#Innovation': 900,
+            '#DataScience': 850,
+            '#MachineLearning': 800,
+            '#Cloud': 750,
+            '#Cybersecurity': 700,
+            '#IoT': 650,
+            '#Blockchain': 600,
+            '#5G': 550,
+            'trending': 500,
+            'viral': 480,
+            'breaking': 460,
+            'news': 440,
+            'update': 420,
+            'latest': 400,
+            'popular': 380,
+            'hot': 360,
+            'buzz': 340,
+            'topic': 320
+        }
+        words_data, canvas_width, canvas_height = generate_wordcloud_layout(demo_words)
+        return render_template('wordcloud.html',
+                             display_name='Demo Trends',
+                             words_data=words_data,
+                             tweets_lookup=json.dumps({}),
+                             canvas_width=canvas_width,
+                             canvas_height=canvas_height,
                              languages=SUPPORTED_LANGUAGES,
-                             selected_lang=lang)
+                             selected_lang=lang,
+                             is_demo=True)
 
 @app.route('/config', methods=['GET', 'POST'])
 def config():
