@@ -322,13 +322,39 @@ def index():
     # Check if Twitter API is configured
     twitter_client = get_twitter_client()
     if twitter_client is None:
-        error_msg = "Twitter API is not configured. Please configure it in the settings page."
-        logger.error(error_msg)
-        return render_template('wordcloud.html', 
-                             languages=SUPPORTED_LANGUAGES, 
+        # Show demo word cloud instead of error
+        demo_words = {
+            '#Technology': 1200,
+            '#AI': 1000,
+            '#Innovation': 900,
+            '#DataScience': 850,
+            '#MachineLearning': 800,
+            '#Cloud': 750,
+            '#Cybersecurity': 700,
+            '#IoT': 650,
+            '#Blockchain': 600,
+            '#5G': 550,
+            'trending': 500,
+            'viral': 480,
+            'breaking': 460,
+            'news': 440,
+            'update': 420,
+            'latest': 400,
+            'popular': 380,
+            'hot': 360,
+            'buzz': 340,
+            'topic': 320
+        }
+        words_data, canvas_width, canvas_height = generate_wordcloud_layout(demo_words)
+        return render_template('wordcloud.html',
+                             display_name='Demo Trends',
+                             words_data=words_data,
+                             tweets_lookup=json.dumps({}),
+                             canvas_width=canvas_width,
+                             canvas_height=canvas_height,
+                             languages=SUPPORTED_LANGUAGES,
                              selected_lang='en',
-                             error=error_msg,
-                             show_config_link=True)
+                             is_demo=True)
     
     if request.method == 'GET':
         # Fetch default US trends

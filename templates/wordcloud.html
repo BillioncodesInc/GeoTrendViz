@@ -20,6 +20,9 @@
                 </div>
             </div>
             <div class="nav-right">
+                <a href="/config" class="settings-btn" aria-label="Settings">
+                    <i class="fas fa-cog"></i>
+                </a>
                 <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">
                     <i class="fas fa-moon"></i>
                 </button>
@@ -69,6 +72,16 @@
             <div class="flash-message error">
                 <i class="fas fa-exclamation-circle"></i>
                 {{ error }}
+            </div>
+        {% endif %}
+
+        {% if is_demo %}
+            <div class="demo-banner">
+                <i class="fas fa-info-circle"></i>
+                <div class="demo-content">
+                    <strong>Demo Mode</strong> - This is a sample word cloud. 
+                    <a href="/config" class="demo-link">Configure your Twitter API credentials</a> to see real trending topics.
+                </div>
             </div>
         {% endif %}
 
