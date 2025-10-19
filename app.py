@@ -88,7 +88,8 @@ def validate_twitter_credentials(creds=None):
         missing.append('TWITTER_BEARER_TOKEN')
     
     if missing:
-        if creds == get_twitter_credentials():
+        # Only log warning if we're checking the default credentials (not during request)
+        if creds is None or not has_request_context():
             logger.warning(f"Missing Twitter API credentials: {', '.join(missing)}")
             logger.warning("Application will start but Twitter API features will not work.")
         return False
